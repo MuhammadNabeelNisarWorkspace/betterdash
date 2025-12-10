@@ -13,9 +13,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { SignOutDialog } from '@/components/sign-out-dialog'
+import { authClient } from '@/lib/auth-client'
 
 export function ProfileDropdown() {
   const [open, setOpen] = useDialogState()
+  const { data: session } = authClient.useSession()
 
   return (
     <>
@@ -23,17 +25,24 @@ export function ProfileDropdown() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="/avatars/01.png" alt="@shadcn" />
-              <AvatarFallback>SN</AvatarFallback>
+              <AvatarImage
+                src={session?.user.image as string}
+                alt={session?.user.name}
+              />
+              <AvatarFallback className="uppercase">
+                {session?.user.name?.slice(0, 2)}
+              </AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuContent className="w-80" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col gap-1.5">
-              <p className="text-sm leading-none font-medium">satnaing</p>
+              <p className="text-sm leading-none font-medium">
+                {session?.user.name}
+              </p>
               <p className="text-muted-foreground text-xs leading-none">
-                satnaingdev@gmail.com
+                {session?.user.email}
               </p>
             </div>
           </DropdownMenuLabel>
