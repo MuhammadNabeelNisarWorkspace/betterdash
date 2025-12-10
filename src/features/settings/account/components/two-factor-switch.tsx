@@ -20,6 +20,7 @@ import {
   InputOTPSeparator,
 } from '@/components/ui/input-otp'
 import { PasswordInput } from '@/components/password-input'
+import { Separator } from '@/components/ui/separator'
 
 export function TwoFactorSwitch() {
   const { data: session } = authClient.useSession()
@@ -52,12 +53,14 @@ export function TwoFactorSwitch() {
       toast.error('Password is required')
       return
     }
+
     setIsLoading(true)
     try {
       const res = await authClient.twoFactor.enable({
         password,
       })
       console.log('🚀 ~ handleEnable2FA ~ res:', res)
+
       if (res.data?.totpURI) {
         setTotpUri(res.data.totpURI)
         setStep('qr')
@@ -79,6 +82,8 @@ export function TwoFactorSwitch() {
         code: verificationCode,
         trustDevice: true,
       })
+      console.log('🚀 ~ handleVerifyOtp ~ res:', res)
+
       // @ts-ignore - backupCodes might not be in typed definition if implied
       if (res.data?.backupCodes) {
         // @ts-ignore
@@ -86,8 +91,7 @@ export function TwoFactorSwitch() {
         setStep('backup')
         toast.success('2FA Enabled Successfully')
       } else {
-        toast.success('2FA Enabled')
-        setIsDialogOpen(false)
+        toast.error('Failed to enable 2FA')
       }
     } catch (e: any) {
       toast.error(e.message || 'Invalid Code')
@@ -165,35 +169,60 @@ export function TwoFactorSwitch() {
           )}
 
           {step === 'qr' && totpUri && (
-            <div className="flex flex-col items-center gap-4 py-4">
+            <div className="flex flex-col items-center gap-4 ">
               <img
-                src={`https://quickchart.io/chart?cht=qr&chs=200x200&chl=${encodeURIComponent(
+                src={`https://quickchart.io/chart?cht=qr&chs=320x320&chl=${encodeURIComponent(
                   totpUri,
                 )}`}
                 alt="QR Code"
-                className="h-48 w-48"
+                className="aspect-square w-80"
               />
-              <div className="grid gap-2 text-center w-full">
-                <Label htmlFor="otp">Enter Verification Code</Label>
-                <div className="flex justify-center">
-                  <InputOTP
-                    maxLength={6}
-                    value={verificationCode}
-                    onChange={setVerificationCode}
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                    </InputOTPGroup>
-                    <InputOTPSeparator />
-                    <InputOTPGroup>
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
+
+              <Separator />
+              {/* show secrate if user cant scan qr code */}
+              {/* "otpauth://totp/BetterDash:muhammad.nabeel.nisar.workspace%40gmail.com?secret=sads87d89sad78sa7d=&issuer=BetterDash&digits=6&period=30"
+               */}
+              {totpUri ? (
+                <p className="text-center text-sm">
+                  If you can't scan the QR code, <br /> you can use the secret
+                  key below:
+                  <br />
+                  {/* i want text brack if secret key is too long  */}
+                  <span className="text-xs">
+                    {
+                      totpUri
+                        ?.split('otpauth://totp/')[1]
+                        ?.split('?')[1]
+                        ?.split('&')[0]
+                        ?.split('=')[1]
+                    }
+                  </span>
+                </p>
+              ) : null}
+
+              <Separator />
+
+              <div className="flex flex-col items-center gap-2 justify-center">
+                <Label htmlFor="otp" className="text-center">
+                  Enter Verification Code
+                </Label>
+                <InputOTP
+                  maxLength={6}
+                  value={verificationCode}
+                  onChange={setVerificationCode}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
             </div>
           )}
@@ -235,6 +264,7 @@ export function TwoFactorSwitch() {
             )}
             {step === 'qr' && (
               <Button
+                className="w-full"
                 onClick={handleVerifyOtp}
                 disabled={isLoading || verificationCode.length < 6}
               >
@@ -251,3 +281,16 @@ export function TwoFactorSwitch() {
     </div>
   )
 }
+
+// "otpauth://totp/BetterDash:muhammad.nabeel.nisar.workspace%40gmail.com?secretsads87d89sad78sa7d=&issuer=BetterDash&digits=6&period=30"
+
+// 0 : "F3vQw-qSFzz"
+// 1 : "Y4VoH-Dd7K2"
+// 2 : "le9G8-X5wAJ"
+// 3 : "T1SE6-6HgkB"
+// 4 : "h3hKs-TYGpG"
+// 5 : "hBPQy-C5kTW"
+// 6 : "PqKTU-DlA9j"
+// 7 : "995HK-M3W4z"
+// 8 : "EFfdH-tTqEi"
+// 9 : "XGDwB-nlOt4"

@@ -84,7 +84,7 @@ model Verification {
 }
 
 model TwoFactor {
-  id          String @id @map("_id")
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
   secret      String
   backupCodes String
   userId      String @db.ObjectId

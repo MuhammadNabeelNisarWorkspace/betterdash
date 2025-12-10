@@ -39,6 +39,7 @@ export const auth = betterAuth({
       })
     },
   },
+  appName: 'BetterDash',
   plugins: [admin(), twoFactor()],
   advanced: {
     trustedOrigins: [process.env.BETTER_AUTH_URL!],
