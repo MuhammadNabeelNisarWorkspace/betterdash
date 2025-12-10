@@ -25,32 +25,32 @@ import {
 } from '@/components/ui/input-otp'
 
 const formSchema = z.object({
-  otp: z
+  code: z
     .string()
     .min(6, 'Please enter the 6-digit code.')
     .max(6, 'Please enter the 6-digit code.'),
 })
 
-type OtpFormProps = React.HTMLAttributes<HTMLFormElement>
+type TotpFormProps = React.HTMLAttributes<HTMLFormElement>
 
-export function OtpForm({ className, ...props }: OtpFormProps) {
+export function TotpForm({ className, ...props }: TotpFormProps) {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema as any),
-    defaultValues: { otp: '' },
+    defaultValues: { code: '' },
   })
 
   // eslint-disable-next-line react-hooks/incompatible-library
-  const otp = form.watch('otp')
+  const code = form.watch('code')
 
   function onSubmit(data: z.infer<typeof formSchema>) {
     setIsLoading(true)
     toast.promise(
-      authClient.twoFactor.verifyOtp(
+      authClient.twoFactor.verifyTotp(
         {
-          code: data.otp,
+          code: data.code,
           trustDevice: true,
         },
         {
@@ -58,7 +58,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
             navigate({ to: '/' })
           },
           onError: (ctx) => {
-            form.setError('otp', { message: ctx.error.message })
+            form.setError('code', { message: ctx.error.message })
             setIsLoading(false)
           },
         },
@@ -80,7 +80,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
       >
         <FormField
           control={form.control}
-          name="otp"
+          name="code"
           render={({ field }) => (
             <FormItem>
               <FormLabel className="sr-only">One-Time Password</FormLabel>
@@ -110,7 +110,7 @@ export function OtpForm({ className, ...props }: OtpFormProps) {
             </FormItem>
           )}
         />
-        <Button className="mt-2" disabled={otp.length < 6 || isLoading}>
+        <Button className="mt-2" disabled={code.length < 6 || isLoading}>
           {isLoading ? <Loader2 className="animate-spin" /> : 'Verify'}
         </Button>
       </form>
