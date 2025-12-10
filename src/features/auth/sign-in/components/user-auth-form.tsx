@@ -61,7 +61,7 @@ export function UserAuthForm({
         },
         onSuccess: (ctx) => {
           if (ctx.data.twoFactorRedirect) {
-            navigate({ to: '/otp' })
+            navigate({ to: '/totp' })
             return
           }
           const targetPath = redirectTo || '/'
