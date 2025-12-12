@@ -162,8 +162,8 @@ export function PasskeySettings() {
             <TableBody>
               {passkeys.map((passkey) => (
                 <TableRow key={passkey.id}>
-                  <TableCell className="font-medium flex items-center gap-2">
-                    <Fingerprint className="h-4 w-4 text-muted-foreground" />
+                  <TableCell>
+                    <Fingerprint className="h-4 w-4 text-muted-foreground inline-flex mr-2" />
                     {passkey.name || 'Unnamed Passkey'}
                   </TableCell>
                   <TableCell>
