@@ -1,6 +1,6 @@
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { getMinimalEmailHtml } from './emals'
-import { admin, twoFactor } from 'better-auth/plugins'
+import { admin, twoFactor, anonymous } from 'better-auth/plugins'
 import { betterAuth } from 'better-auth'
 import { SendMail } from './resend'
 import prisma from './prisma'
@@ -40,7 +40,13 @@ export const auth = betterAuth({
     },
   },
   appName: 'BetterDash',
-  plugins: [admin(), twoFactor()],
+  plugins: [
+    admin(),
+    twoFactor(),
+    anonymous({
+      emailDomainName: 'no-email.betterdash.com',
+    }),
+  ],
   advanced: {
     trustedOrigins: [process.env.BETTER_AUTH_URL!],
     database: {

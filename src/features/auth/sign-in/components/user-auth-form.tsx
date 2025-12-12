@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Loader2, LogIn } from 'lucide-react'
+import { HatGlasses, Loader2, LogIn } from 'lucide-react'
 import { toast } from 'sonner'
 import { IconGithub } from '@/assets/brand-icons'
 import { cn } from '@/lib/utils'
@@ -112,6 +112,34 @@ export function UserAuthForm({
     )
   }
 
+  function AnonymousSignIn() {
+    toast.promise(
+      authClient.signIn.anonymous(
+        {},
+        {
+          onRequest: () => {
+            setIsLoading(true)
+          },
+          onResponse: () => {
+            setIsLoading(false)
+          },
+          onSuccess: () => {
+            navigate({ to: '/', replace: true })
+          },
+          onError: (error) => {
+            const message = error.error.message || error.error.statusText
+            throw new Error(message)
+          },
+        },
+      ),
+      {
+        loading: `Signing in anonymously...`,
+        success: () => `Welcome back!`,
+        error: (err) => err.message || 'Something went wrong',
+      },
+    )
+  }
+
   return (
     <Form {...form}>
       <form
@@ -176,6 +204,15 @@ export function UserAuthForm({
           onClick={() => SocialSignIn('github')}
         >
           <IconGithub className="h-4 w-4" /> GitHub
+        </Button>
+
+        <Button
+          variant="outline"
+          type="button"
+          disabled={isLoading}
+          onClick={() => AnonymousSignIn()}
+        >
+          <HatGlasses className="h-4 w-4" /> Anonymous
         </Button>
       </form>
     </Form>

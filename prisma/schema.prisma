@@ -29,6 +29,7 @@ model User {
   banExpires       DateTime?
   twoFactorEnabled Boolean?    @default(false)
   twofactors       TwoFactor[]
+  isAnonymous      Boolean?    @default(false)
 
   @@unique([email])
   @@map("user")
