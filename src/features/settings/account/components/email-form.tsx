@@ -16,6 +16,8 @@ import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import useDialogState from '@/hooks/use-dialog-state'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 const accountFormSchema = z.object({
   email: z.email('Please enter a valid email address.'),
@@ -25,16 +27,21 @@ type AccountFormValues = z.infer<typeof accountFormSchema>
 
 export function EmailForm({ email }: { email: string }) {
   const [isLoading, setIsLoading] = useState(false)
+  const [open, setOpen] = useDialogState()
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(accountFormSchema),
     defaultValues: { email },
   })
 
-  function onSubmit(data: AccountFormValues) {
+  function onSubmit() {
+    setOpen(true)
+  }
+
+  function handleConfirm() {
     toast.promise(
       authClient.changeEmail(
-        { newEmail: data.email },
+        { newEmail: form.getValues('email'), callbackURL: '/settings/account' },
         {
           onRequest: () => {
             setIsLoading(true)
@@ -49,8 +56,8 @@ export function EmailForm({ email }: { email: string }) {
         },
       ),
       {
-        loading: `Updating email...`,
-        success: () => `Email updated successfully!`,
+        loading: `Changing email...`,
+        success: () => `Please check your email for confirmation!`,
         error: (err) => err.message || 'Something went wrong',
       },
     )
@@ -58,7 +65,7 @@ export function EmailForm({ email }: { email: string }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)}>
         <FormField
           control={form.control}
           name="email"
@@ -85,7 +92,7 @@ export function EmailForm({ email }: { email: string }) {
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    'Save'
+                    'Change'
                   )}
                 </Button>
               </div>
@@ -95,6 +102,18 @@ export function EmailForm({ email }: { email: string }) {
               </FormDescription>
             </FormItem>
           )}
+        />
+
+        <ConfirmDialog
+          isLoading={isLoading}
+          open={!!open}
+          onOpenChange={setOpen}
+          title="Change Email"
+          desc="By updating your email, you are changing your primary login credential. Your previous email will be immediately disabled for sign-in. For security and to maintain your current account permissions, you must **verify your new email address** immediately after saving."
+          confirmText="Change"
+          destructive
+          handleConfirm={handleConfirm}
+          className="sm:max-w-sm"
         />
       </form>
     </Form>
