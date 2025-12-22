@@ -12,15 +12,17 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: 'mongodb',
   }),
+
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID as string,
       clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
     },
   },
+
   emailAndPassword: {
     enabled: true,
-    // requireEmailVerification: true,
+    requireEmailVerification: true,
     sendResetPassword: async (data) => {
       const resetUrl = `${appUrl}/reset-password?token=${data.token}`
 
@@ -40,6 +42,26 @@ export const auth = betterAuth({
       })
     },
   },
+
+  emailVerification: {
+    sendVerificationEmail: async (data) => {
+      const emailHtml = getMinimalEmailHtml({
+        title: 'Verify Your New Email Address',
+        username: data.user.name,
+        body: `Click the button below to verify your new email address: **${data.user.email}**`,
+        buttonText: 'Verify Email',
+        link: data.url,
+      })
+
+      void SendMail({
+        to: data.user.email,
+        subject: 'Final Step: Verify Your New Email Address',
+        text: `Verify email link: ${data.url}`,
+        html: emailHtml,
+      })
+    },
+  },
+
   appName: 'BetterDash',
   plugins: [
     admin(),

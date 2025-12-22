@@ -13,10 +13,12 @@ export const Route = createFileRoute('/_authenticated')({
       throw redirect({ to: '/sign-in' })
     }
 
-    // if (!context.session.user?.emailVerified) {
-    //   debugLog('loader', 'Email not verified, redirecting to /email-verified')
-    //   throw redirect({ to: '/email-verified' })
-    // }
+    if (!context.session.user?.emailVerified) {
+      throw redirect({
+        to: '/email-verification',
+        search: { email: context.session.user.email },
+      })
+    }
 
     return context
   },

@@ -64,8 +64,12 @@ export function SignUpForm({
           setIsLoading(false)
         },
         onSuccess: () => {
-          const targetPath = '/'
-          navigate({ to: targetPath, replace: true })
+          const targetPath = '/email-verification'
+          navigate({
+            to: targetPath,
+            replace: true,
+            search: { email: data.email },
+          })
         },
         onError: (error) => {
           const message = error.error.message || error.error.statusText
