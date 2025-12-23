@@ -5,6 +5,13 @@ import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -107,156 +114,165 @@ export function TwoFactorSwitch({ session }: SessionProps) {
   }
 
   return (
-    <div className="flex items-center justify-between rounded-lg border p-4 mt-4">
-      <div className="space-y-0.5">
-        <Label className="text-base">Two-factor Authentication</Label>
-        <p className="text-muted-foreground text-sm">
+    <Card>
+      <CardHeader>
+        <CardTitle>Two-factor Authentication</CardTitle>
+        <CardDescription>
           Add an extra layer of security to your account.
-        </p>
-      </div>
-      <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
-        <DialogTrigger asChild>
-          <Button>Enable 2FA</Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
-            <DialogDescription>
-              {step === 'password' && 'Please enter your password to continue.'}
-              {step === 'qr' && 'Scan the QR code with your authenticator app.'}
-              {step === 'backup' && 'Save these backup codes in a safe place.'}
-            </DialogDescription>
-          </DialogHeader>
+        </CardDescription>
+        <CardAction>
+          <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button>Enable 2FA</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
+                <DialogDescription>
+                  {step === 'password' &&
+                    'Please enter your password to continue.'}
+                  {step === 'qr' &&
+                    'Scan the QR code with your authenticator app.'}
+                  {step === 'backup' &&
+                    'Save these backup codes in a safe place.'}
+                </DialogDescription>
+              </DialogHeader>
 
-          {step === 'password' && (
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+              {step === 'password' && (
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="password">Password</Label>
 
-                <PasswordInput
-                  id="password"
-                  value={password}
-                  placeholder="********"
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 'qr' && totpUri && (
-            <div className="flex flex-col items-center gap-4 ">
-              <img
-                src={`https://quickchart.io/chart?cht=qr&chs=320x320&chl=${encodeURIComponent(
-                  totpUri,
-                )}`}
-                alt="QR Code"
-                className="aspect-square w-80"
-              />
-
-              <Separator />
-              {totpUri ? (
-                <p className="text-center text-sm">
-                  If you can't scan the QR code, <br /> you can use the secret
-                  key below:
-                  <br />
-                  {/* i want text brack if secret key is too long  */}
-                  <span className="text-xs">
-                    {
-                      totpUri
-                        ?.split('otpauth://totp/')[1]
-                        ?.split('?')[1]
-                        ?.split('&')[0]
-                        ?.split('=')[1]
-                    }
-                  </span>
-                </p>
-              ) : null}
-
-              <Separator />
-
-              <div className="flex flex-col items-center gap-2 justify-center">
-                <Label htmlFor="otp" className="text-center">
-                  Enter Verification Code
-                </Label>
-                <InputOTP
-                  maxLength={6}
-                  value={verificationCode}
-                  onChange={setVerificationCode}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                  </InputOTPGroup>
-                  <InputOTPSeparator />
-                  <InputOTPGroup>
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-            </div>
-          )}
-
-          {step === 'backup' && (
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-2">
-                {backupCodes.map((code, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-center border p-2 rounded text-sm font-mono"
-                  >
-                    {code}
+                    <PasswordInput
+                      id="password"
+                      value={password}
+                      placeholder="********"
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
                   </div>
-                ))}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(backupCodes.join(' | '))
-                  toast.success('Copied to clipboard')
-                }}
-              >
-                <Copy className="mr-2 h-4 w-4" /> Copy Codes
-              </Button>
-            </div>
-          )}
+                </div>
+              )}
 
-          <DialogFooter>
-            {step === 'password' && (
-              <Button
-                className="w-full"
-                onClick={handleEnable2FA}
-                disabled={isLoading || !password}
-              >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Continue
-              </Button>
-            )}
-            {step === 'qr' && (
-              <Button
-                className="w-full"
-                onClick={handleVerifyOtp}
-                disabled={isLoading || verificationCode.length < 6}
-              >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Verify
-              </Button>
-            )}
-            {step === 'backup' && (
-              <Button
-                className="w-full"
-                onClick={() => handleOpenChange(false)}
-              >
-                Done
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+              {step === 'qr' && totpUri && (
+                <div className="flex flex-col items-center gap-4 ">
+                  <img
+                    src={`https://quickchart.io/chart?cht=qr&chs=320x320&chl=${encodeURIComponent(
+                      totpUri,
+                    )}`}
+                    alt="QR Code"
+                    className="aspect-square w-80"
+                  />
+
+                  <Separator />
+                  {totpUri ? (
+                    <p className="text-center text-sm">
+                      If you can't scan the QR code, <br /> you can use the
+                      secret key below:
+                      <br />
+                      {/* i want text brack if secret key is too long  */}
+                      <span className="text-xs">
+                        {
+                          totpUri
+                            ?.split('otpauth://totp/')[1]
+                            ?.split('?')[1]
+                            ?.split('&')[0]
+                            ?.split('=')[1]
+                        }
+                      </span>
+                    </p>
+                  ) : null}
+
+                  <Separator />
+
+                  <div className="flex flex-col items-center gap-2 justify-center">
+                    <Label htmlFor="otp" className="text-center">
+                      Enter Verification Code
+                    </Label>
+                    <InputOTP
+                      maxLength={6}
+                      value={verificationCode}
+                      onChange={setVerificationCode}
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                      </InputOTPGroup>
+                      <InputOTPSeparator />
+                      <InputOTPGroup>
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                </div>
+              )}
+
+              {step === 'backup' && (
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    {backupCodes.map((code, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-center border p-2 rounded text-sm font-mono"
+                      >
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(backupCodes.join(' | '))
+                      toast.success('Copied to clipboard')
+                    }}
+                  >
+                    <Copy className="mr-2 h-4 w-4" /> Copy Codes
+                  </Button>
+                </div>
+              )}
+
+              <DialogFooter>
+                {step === 'password' && (
+                  <Button
+                    className="w-full"
+                    onClick={handleEnable2FA}
+                    disabled={isLoading || !password}
+                  >
+                    {isLoading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Continue
+                  </Button>
+                )}
+                {step === 'qr' && (
+                  <Button
+                    className="w-full"
+                    onClick={handleVerifyOtp}
+                    disabled={isLoading || verificationCode.length < 6}
+                  >
+                    {isLoading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Verify
+                  </Button>
+                )}
+                {step === 'backup' && (
+                  <Button
+                    className="w-full"
+                    onClick={() => handleOpenChange(false)}
+                  >
+                    Done
+                  </Button>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardAction>
+      </CardHeader>
+    </Card>
   )
 }
 
@@ -295,53 +311,55 @@ export function TwoFactorDisable() {
   }
 
   return (
-    <div className="flex items-center justify-between rounded-lg border p-4 mt-4">
-      <div className="space-y-0.5">
-        <Label className="text-base">Two-factor Authentication</Label>
-        <p className="text-muted-foreground text-sm">
-          Two-factor authentication is enabled.
-        </p>
-      </div>
-      <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
-        <DialogTrigger asChild>
-          <Button variant="destructive" onClick={handleDisable2FA}>
-            Disable 2FA
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Disable Two-Factor Authentication</DialogTitle>
-            <DialogDescription>
-              Please enter your password to continue.
-            </DialogDescription>
-          </DialogHeader>
+    <Card>
+      <CardHeader>
+        <CardTitle>Two-factor Authentication</CardTitle>
+        <CardDescription>Two-factor authentication is enabled.</CardDescription>
+        <CardAction>
+          <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" onClick={handleDisable2FA}>
+                Disable 2FA
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Disable Two-Factor Authentication</DialogTitle>
+                <DialogDescription>
+                  Please enter your password to continue.
+                </DialogDescription>
+              </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="password">Password</Label>
 
-              <PasswordInput
-                id="password"
-                value={password}
-                placeholder="********"
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
+                  <PasswordInput
+                    id="password"
+                    value={password}
+                    placeholder="********"
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <DialogFooter>
-            <Button
-              className="w-full"
-              variant="destructive"
-              onClick={handleDisable2FA}
-              disabled={isLoading || !password}
-            >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Disable 2FA
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+              <DialogFooter>
+                <Button
+                  className="w-full"
+                  variant="destructive"
+                  onClick={handleDisable2FA}
+                  disabled={isLoading || !password}
+                >
+                  {isLoading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Disable 2FA
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardAction>
+      </CardHeader>
+    </Card>
   )
 }
