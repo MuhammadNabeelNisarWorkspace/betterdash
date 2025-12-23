@@ -4,6 +4,7 @@ import { ContentSection } from '../components/content-section'
 import { EmailForm } from './components/email-form'
 import { NameForm } from './components/name-form'
 import { PasskeySettings } from './components/passkey-settings'
+import { SessionsList } from './components/sessions-list'
 import { TwoFactorSwitch } from './components/two-factor-switch'
 
 export function SettingsAccount({ session }: SessionProps) {
@@ -18,6 +19,7 @@ export function SettingsAccount({ session }: SessionProps) {
         <EmailForm email={session?.user.email || ''} />
         <TwoFactorSwitch session={session} />
         <PasskeySettings session={session} />
+        <SessionsList session={session} />
       </div>
     </ContentSection>
   )

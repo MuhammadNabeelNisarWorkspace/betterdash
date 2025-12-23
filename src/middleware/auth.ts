@@ -25,13 +25,15 @@ export const authenticatedMiddleware = createMiddleware().server(
     })
 
     if (!session) {
-      // throw redirect({ to: '/auth/signin' })
       throw redirect({ to: '/sign-in' })
     }
 
-    // if (!session.user?.emailVerified) {
-    //   throw redirect({ to: '/email-verified' })
-    // }
+    if (!session.user?.emailVerified) {
+      throw redirect({
+        to: '/email-verification',
+        search: { email: session.user.email },
+      })
+    }
 
     return next({
       context: { session },
