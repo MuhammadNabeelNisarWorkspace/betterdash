@@ -31,8 +31,11 @@ model User {
   twofactors       TwoFactor[]
   isAnonymous      Boolean?    @default(false)
   passkeys         Passkey[]
+  username         String?
+  displayUsername  String?
 
   @@unique([email])
+  @@unique([username])
   @@map("user")
 }
 

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { IconGithub } from '@/assets/brand-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from '@tanstack/react-router'
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -23,6 +24,7 @@ import { PasswordInput } from '@/components/password-input'
 const formSchema = z
   .object({
     name: z.string().min(1, 'Please enter your name'),
+    username: z.string().min(1, 'Please enter your username'),
     email: z.email({
       error: (iss) =>
         iss.input === '' ? 'Please enter your email' : undefined,
@@ -49,11 +51,51 @@ export function SignUpForm({
     resolver: zodResolver(formSchema as any),
     defaultValues: {
       name: '',
+      username: '',
       email: '',
       password: '',
       confirmPassword: '',
     },
   })
+
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false)
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState<
+    boolean | null
+  >(null)
+
+  const usernameValue = form.watch('username')
+
+  useEffect(() => {
+    const checkUsername = async () => {
+      if (!usernameValue || usernameValue.length < 3) {
+        setIsUsernameAvailable(null)
+        return
+      }
+
+      setIsCheckingUsername(true)
+      try {
+        const { data, error } = await authClient.isUsernameAvailable({
+          username: usernameValue,
+        })
+        if (error) {
+          setIsUsernameAvailable(false)
+          return
+        }
+        setIsUsernameAvailable(data?.available ?? false)
+      } catch (error) {
+        console.error('Error checking username:', error)
+        setIsUsernameAvailable(false)
+      } finally {
+        setIsCheckingUsername(false)
+      }
+    }
+
+    const timer = setTimeout(checkUsername, 500)
+    return () => clearTimeout(timer)
+  }, [usernameValue])
+
+  const areFieldsDisabled =
+    isLoading || !isUsernameAvailable || isCheckingUsername
 
   function onSubmit(data: z.infer<typeof formSchema>) {
     toast.promise(
@@ -127,12 +169,55 @@ export function SignUpForm({
       >
         <FormField
           control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Username</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    placeholder="username"
+                    {...field}
+                    className={cn(
+                      isUsernameAvailable === true && 'border-green-500',
+                      isUsernameAvailable === false && 'border-red-500',
+                    )}
+                  />
+                  <div className="absolute inset-y-0 right-3 flex items-center">
+                    {isCheckingUsername && (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                    {!isCheckingUsername && isUsernameAvailable === true && (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    )}
+                    {!isCheckingUsername && isUsernameAvailable === false && (
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    )}
+                  </div>
+                </div>
+              </FormControl>
+              {isUsernameAvailable === false && (
+                <p className="text-[0.8rem] font-medium text-destructive">
+                  Username is already taken.
+                </p>
+              )}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input placeholder="Shadcn" {...field} />
+                <Input
+                  disabled={areFieldsDisabled}
+                  placeholder="Shadcn"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -146,7 +231,11 @@ export function SignUpForm({
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="name@example.com" {...field} />
+                <Input
+                  placeholder="name@example.com"
+                  disabled={areFieldsDisabled}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -160,7 +249,11 @@ export function SignUpForm({
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <PasswordInput placeholder="********" {...field} />
+                <PasswordInput
+                  disabled={areFieldsDisabled}
+                  placeholder="********"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -174,15 +267,19 @@ export function SignUpForm({
             <FormItem>
               <FormLabel>Confirm Password</FormLabel>
               <FormControl>
-                <PasswordInput placeholder="********" {...field} />
+                <PasswordInput
+                  disabled={areFieldsDisabled}
+                  placeholder="********"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button className="mt-2" disabled={isLoading}>
-          Create Account
+        <Button className="mt-2" disabled={areFieldsDisabled || isLoading}>
+          {isLoading ? 'Creating account...' : 'Create Account'}
         </Button>
 
         <div className="relative my-2">
@@ -195,7 +292,6 @@ export function SignUpForm({
             </span>
           </div>
         </div>
-
         <Button
           type="button"
           variant="outline"
