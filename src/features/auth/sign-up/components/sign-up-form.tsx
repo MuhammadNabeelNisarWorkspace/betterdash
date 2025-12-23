@@ -24,7 +24,11 @@ import { PasswordInput } from '@/components/password-input'
 const formSchema = z
   .object({
     name: z.string().min(1, 'Please enter your name'),
-    username: z.string().min(1, 'Please enter your username'),
+    username: z
+      .string()
+      .min(1, 'Please enter your username.')
+      .min(3, 'Username must be at least 3 characters.')
+      .max(30, 'Username must not be longer than 30 characters.'),
     email: z.email({
       error: (iss) =>
         iss.input === '' ? 'Please enter your email' : undefined,
@@ -56,6 +60,7 @@ export function SignUpForm({
       password: '',
       confirmPassword: '',
     },
+    mode: 'onChange',
   })
 
   const [isCheckingUsername, setIsCheckingUsername] = useState(false)
@@ -67,7 +72,11 @@ export function SignUpForm({
 
   useEffect(() => {
     const checkUsername = async () => {
-      if (!usernameValue || usernameValue.length < 3) {
+      if (
+        !usernameValue ||
+        usernameValue.length < 3 ||
+        usernameValue.length > 30
+      ) {
         setIsUsernameAvailable(null)
         return
       }
@@ -170,7 +179,7 @@ export function SignUpForm({
         <FormField
           control={form.control}
           name="username"
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <FormItem>
               <FormLabel>Username</FormLabel>
               <FormControl>
@@ -196,7 +205,7 @@ export function SignUpForm({
                   </div>
                 </div>
               </FormControl>
-              {isUsernameAvailable === false && (
+              {isUsernameAvailable === false && !fieldState.error && (
                 <p className="text-[0.8rem] font-medium text-destructive">
                   Username is already taken.
                 </p>

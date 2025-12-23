@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2 } from 'lucide-react'
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { authClient } from '@/lib/auth-client'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -27,9 +28,9 @@ import { Input } from '@/components/ui/input'
 const usernameFormSchema = z.object({
   username: z
     .string()
-    .min(1, 'Please enter your name.')
-    .min(2, 'Name must be at least 2 characters.')
-    .max(30, 'Name must not be longer than 30 characters.'),
+    .min(1, 'Please enter your username.')
+    .min(3, 'Username must be at least 3 characters.')
+    .max(30, 'Username must not be longer than 30 characters.'),
 })
 
 type UsernameFormValues = z.infer<typeof usernameFormSchema>
@@ -40,6 +41,7 @@ export function UsernameForm({ username }: { username: string }) {
   const form = useForm<UsernameFormValues>({
     resolver: zodResolver(usernameFormSchema),
     defaultValues: { username },
+    mode: 'onChange',
   })
 
   const [isCheckingUsername, setIsCheckingUsername] = useState(false)
@@ -51,7 +53,12 @@ export function UsernameForm({ username }: { username: string }) {
 
   useEffect(() => {
     const checkUsername = async () => {
-      if (!usernameValue || usernameValue.length < 3) {
+      if (
+        !usernameValue ||
+        usernameValue.length < 3 ||
+        usernameValue.length > 30 ||
+        usernameValue === username
+      ) {
         setIsUsernameAvailable(null)
         return
       }
@@ -78,8 +85,12 @@ export function UsernameForm({ username }: { username: string }) {
     return () => clearTimeout(timer)
   }, [usernameValue])
 
+  const isUnchanged = usernameValue === username
   const areFieldsDisabled =
-    isLoading || !isUsernameAvailable || isCheckingUsername
+    isLoading ||
+    isCheckingUsername ||
+    isUsernameAvailable === false ||
+    isUnchanged
 
   function onSubmit(data: UsernameFormValues) {
     toast.promise(
@@ -111,7 +122,7 @@ export function UsernameForm({ username }: { username: string }) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <Card className="pb-0">
           <CardHeader>
-            <CardTitle>Display Name</CardTitle>
+            <CardTitle>Username</CardTitle>
             <CardDescription>
               This is your URL namespace within BetterDash.
             </CardDescription>
@@ -120,15 +131,40 @@ export function UsernameForm({ username }: { username: string }) {
             <FormField
               control={form.control}
               name="username"
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <FormItem>
                   <FormControl>
-                    <Input
-                      placeholder="Your username"
-                      autoComplete="username"
-                      {...field}
-                    />
+                    <div className="relative">
+                      <Input
+                        placeholder="Your username"
+                        disabled={isLoading}
+                        autoComplete="username"
+                        {...field}
+                        className={cn(
+                          isUsernameAvailable === true && 'border-green-500',
+                          isUsernameAvailable === false && 'border-red-500',
+                        )}
+                      />
+                      <div className="absolute inset-y-0 right-3 flex items-center">
+                        {isCheckingUsername && (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        )}
+                        {!isCheckingUsername &&
+                          isUsernameAvailable === true && (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          )}
+                        {!isCheckingUsername &&
+                          isUsernameAvailable === false && (
+                            <XCircle className="h-4 w-4 text-red-500" />
+                          )}
+                      </div>
+                    </div>
                   </FormControl>
+                  {isUsernameAvailable === false && !fieldState.error && (
+                    <p className="text-[0.8rem] font-medium text-destructive">
+                      Username is already taken.
+                    </p>
+                  )}
                   <FormMessage className="pt-1 text-xs" />
                 </FormItem>
               )}
@@ -137,11 +173,11 @@ export function UsernameForm({ username }: { username: string }) {
 
           <CardFooter className="flex items-center justify-between border-t py-4!">
             <p className="text-sm text-muted-foreground">
-              Please use 48 characters at maximum.
+              Please use 30 characters at maximum.
             </p>
             <Button
               type="submit"
-              disabled={isLoading}
+              disabled={areFieldsDisabled}
               className="whitespace-nowrap"
             >
               {isLoading ? (
