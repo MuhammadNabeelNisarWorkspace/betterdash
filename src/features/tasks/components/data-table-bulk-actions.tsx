@@ -5,7 +5,6 @@ import { type Table } from '@tanstack/react-table'
 import { ArrowUpDown, CircleArrowUp, Download, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { sleep } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -22,7 +21,7 @@ import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-ta
 
 import { priorities, statuses } from '../data/data'
 import { type Task } from '../data/schema'
-import { updateTasksFn } from '../server/actions'
+import { getTasksByIdsFn, updateTasksFn } from '../server/actions'
 import { TasksMultiDeleteDialog } from './tasks-multi-delete-dialog'
 
 type DataTableBulkActionsProps<TData> = {
@@ -79,16 +78,48 @@ export function DataTableBulkActions<TData>({
   }
 
   const handleBulkExport = () => {
-    const selectedTasks = selectedRows.map((row) => row.original as Task)
-    toast.promise(sleep(2000), {
-      loading: 'Exporting tasks...',
-      success: () => {
+    const ids = selectedRows.map((row) => (row.original as Task).id)
+
+    toast.promise(
+      (async () => {
+        const tasks = await getTasksByIdsFn({ data: { ids } })
+
+        const headers = ['id', 'code', 'title', 'status', 'label', 'priority']
+        const csvData = tasks.map((task) =>
+          headers
+            .map((header) => {
+              const value = task[header as keyof (typeof tasks)[0]] || ''
+              const stringValue =
+                typeof value === 'string' ? value : JSON.stringify(value)
+              return `"${stringValue.replace(/"/g, '""')}"`
+            })
+            .join(','),
+        )
+
+        const csvContent = [headers.join(','), ...csvData].join('\n')
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.setAttribute('href', url)
+        link.setAttribute(
+          'download',
+          `tasks-export-${new Date().toISOString().split('T')[0]}.csv`,
+        )
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+
         table.resetRowSelection()
-        return `Exported ${selectedTasks.length} task${selectedTasks.length > 1 ? 's' : ''} to CSV.`
+        return `Exported ${tasks.length} task${tasks.length > 1 ? 's' : ''} successfully.`
+      })(),
+      {
+        loading: 'Preparing export...',
+        success: (msg) => msg,
+        error: 'Failed to export tasks.',
       },
-      error: 'Error',
-    })
-    table.resetRowSelection()
+    )
   }
 
   return (

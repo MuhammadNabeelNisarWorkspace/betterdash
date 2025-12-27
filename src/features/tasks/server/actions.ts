@@ -5,17 +5,29 @@ import { z } from 'zod'
 
 import prisma from '@/lib/prisma'
 
-import { createTaskSchema } from '../data/schema'
+import { createTaskSchema, importTaskSchema } from '../data/schema'
 
 export const createTaskFn = createServerFn({ method: 'POST' })
   .middleware([authenticatedMiddleware])
   .inputValidator(createTaskSchema)
   .handler(async ({ data }) => {
-    const count = await prisma.task.count()
+    const lastTask = await prisma.task.findFirst({
+      orderBy: { code: 'desc' },
+      select: { code: true },
+    })
+
+    let lastNumber = 0
+    if (lastTask?.code) {
+      const match = lastTask.code.match(/TASK-(\d+)/)
+      if (match) {
+        lastNumber = parseInt(match[1], 10)
+      }
+    }
+
     const task = await prisma.task.create({
       data: {
         ...data,
-        code: `TASK-${(count + 1).toString().padStart(4, '0')}`,
+        code: `TASK-${(lastNumber + 1).toString().padStart(4, '0')}`,
       },
     })
     return task
@@ -76,6 +88,67 @@ export const updateTasksFn = createServerFn({ method: 'POST' })
     return { success: true }
   })
 
+export const getTasksByIdsFn = createServerFn({ method: 'GET' })
+  .middleware([authenticatedMiddleware])
+  .inputValidator(z.object({ ids: z.array(z.string()) }))
+  .handler(async ({ data }) => {
+    const tasks = await prisma.task.findMany({
+      where: { id: { in: data.ids } },
+    })
+    return tasks
+  })
+
+export const importTasksFn = createServerFn({ method: 'POST' })
+  .middleware([authenticatedMiddleware])
+  .inputValidator(z.array(importTaskSchema))
+  .handler(async ({ data }) => {
+    const lastTask = await prisma.task.findFirst({
+      orderBy: { code: 'desc' },
+      select: { code: true },
+    })
+
+    let lastNumber = 0
+    if (lastTask?.code) {
+      const match = lastTask.code.match(/TASK-(\d+)/)
+      if (match) {
+        lastNumber = parseInt(match[1], 10)
+      }
+    }
+
+    let createdCount = 0
+    let updatedCount = 0
+
+    // We process tasks sequentially to handle code generation correctly for new tasks
+    for (let i = 0; i < data.length; i++) {
+      const taskData = data[i]
+      if (taskData.id) {
+        await prisma.task.update({
+          where: { id: taskData.id },
+          data: {
+            title: taskData.title,
+            status: taskData.status,
+            label: taskData.label,
+            priority: taskData.priority,
+          },
+        })
+        updatedCount++
+      } else {
+        await prisma.task.create({
+          data: {
+            title: taskData.title,
+            status: taskData.status,
+            label: taskData.label,
+            priority: taskData.priority,
+            code: `TASK-${(lastNumber + createdCount + 1).toString().padStart(4, '0')}`,
+          },
+        })
+        createdCount++
+      }
+    }
+
+    return { success: true, count: data.length, createdCount, updatedCount }
+  })
+
 export const getTasksFn = createServerFn({ method: 'GET' })
   .middleware([authenticatedMiddleware])
   .inputValidator(
@@ -132,12 +205,25 @@ export const getTasksFn = createServerFn({ method: 'GET' })
 export const seedTasksFn = createServerFn({ method: 'POST' })
   .middleware([authenticatedMiddleware])
   .handler(async () => {
+    const lastTask = await prisma.task.findFirst({
+      orderBy: { code: 'desc' },
+      select: { code: true },
+    })
+
+    let lastNumber = 0
+    if (lastTask?.code) {
+      const match = lastTask.code.match(/TASK-(\d+)/)
+      if (match) {
+        lastNumber = parseInt(match[1], 10)
+      }
+    }
+
     const LABELS = ['bug', 'feature', 'documentation']
     const STATUSES = ['backlog', 'todo', 'in progress', 'done', 'canceled']
     const PRIORITIES = ['low', 'medium', 'high', 'critical']
 
     const tasks = Array.from({ length: 100 }).map((_, i) => ({
-      code: `TASK-${(i + 1).toString().padStart(4, '0')}`,
+      code: `TASK-${(lastNumber + i + 1).toString().padStart(4, '0')}`,
       title: faker.lorem.sentence({ min: 5, max: 15 }),
       status: faker.helpers.arrayElement(STATUSES),
       label: faker.helpers.arrayElement(LABELS),

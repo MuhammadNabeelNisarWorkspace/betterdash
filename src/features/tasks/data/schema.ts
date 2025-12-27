@@ -21,3 +21,11 @@ export const createTaskSchema = z.object({
 })
 
 export type CreateTask = z.infer<typeof createTaskSchema>
+
+export const importTaskSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().min(1, 'Title is required.'),
+  status: z.string().min(1, 'Please select a status.'),
+  label: z.string().min(1, 'Please select a label.'),
+  priority: z.string().min(1, 'Please choose a priority.'),
+})
