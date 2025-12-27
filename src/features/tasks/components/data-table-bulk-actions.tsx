@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import { type Table } from '@tanstack/react-table'
 import { ArrowUpDown, CircleArrowUp, Download, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -20,42 +22,60 @@ import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-ta
 
 import { priorities, statuses } from '../data/data'
 import { type Task } from '../data/schema'
+import { updateTasksFn } from '../server/actions'
 import { TasksMultiDeleteDialog } from './tasks-multi-delete-dialog'
 
 type DataTableBulkActionsProps<TData> = {
   table: Table<TData>
 }
 
+const route = getRouteApi('/_authenticated/tasks/')
+
 export function DataTableBulkActions<TData>({
   table,
 }: DataTableBulkActionsProps<TData>) {
+  const queryClient = useQueryClient()
+  const search = route.useSearch()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const selectedRows = table.getFilteredSelectedRowModel().rows
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: updateTasksFn,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', search] })
+      const count = variables.data.ids.length
+      const field = variables.data.data.status ? 'status' : 'priority'
+      const value = variables.data.data.status || variables.data.data.priority
+      toast.success(
+        `Updated ${field} to "${value}" for ${count} ${
+          count > 1 ? 'tasks' : 'task'
+        } successfully`,
+      )
+      table.resetRowSelection()
+    },
+    onError: (error) => {
+      toast.error('Failed to update tasks: ' + error.message)
+    },
+  })
+
   const handleBulkStatusChange = (status: string) => {
-    const selectedTasks = selectedRows.map((row) => row.original as Task)
-    toast.promise(sleep(2000), {
-      loading: 'Updating status...',
-      success: () => {
-        table.resetRowSelection()
-        return `Status updated to "${status}" for ${selectedTasks.length} task${selectedTasks.length > 1 ? 's' : ''}.`
+    const ids = selectedRows.map((row) => (row.original as Task).id)
+    bulkUpdateMutation.mutate({
+      data: {
+        ids,
+        data: { status },
       },
-      error: 'Error',
     })
-    table.resetRowSelection()
   }
 
   const handleBulkPriorityChange = (priority: string) => {
-    const selectedTasks = selectedRows.map((row) => row.original as Task)
-    toast.promise(sleep(2000), {
-      loading: 'Updating priority...',
-      success: () => {
-        table.resetRowSelection()
-        return `Priority updated to "${priority}" for ${selectedTasks.length} task${selectedTasks.length > 1 ? 's' : ''}.`
+    const ids = selectedRows.map((row) => (row.original as Task).id)
+    bulkUpdateMutation.mutate({
+      data: {
+        ids,
+        data: { priority },
       },
-      error: 'Error',
     })
-    table.resetRowSelection()
   }
 
   const handleBulkExport = () => {

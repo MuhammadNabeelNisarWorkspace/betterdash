@@ -47,6 +47,35 @@ export const deleteTaskFn = createServerFn({ method: 'POST' })
     return { success: true }
   })
 
+export const deleteTasksFn = createServerFn({ method: 'POST' })
+  .middleware([authenticatedMiddleware])
+  .inputValidator(z.object({ ids: z.array(z.string()) }))
+  .handler(async ({ data }) => {
+    await prisma.task.deleteMany({
+      where: { id: { in: data.ids } },
+    })
+    return { success: true }
+  })
+
+export const updateTasksFn = createServerFn({ method: 'POST' })
+  .middleware([authenticatedMiddleware])
+  .inputValidator(
+    z.object({
+      ids: z.array(z.string()),
+      data: z.object({
+        status: z.string().optional(),
+        priority: z.string().optional(),
+      }),
+    }),
+  )
+  .handler(async ({ data }) => {
+    await prisma.task.updateMany({
+      where: { id: { in: data.ids } },
+      data: data.data,
+    })
+    return { success: true }
+  })
+
 export const getTasksFn = createServerFn({ method: 'GET' })
   .middleware([authenticatedMiddleware])
   .inputValidator(
